@@ -1,0 +1,6 @@
+{
+	"server": "vcenter_server_address",
+	"username": "vcenter_admin@domain.local",
+	"password": "vcenter_password",
+	"port": "443"
+}
