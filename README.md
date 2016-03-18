@@ -13,12 +13,15 @@ Based on:
 ### dependiences
 
 ```bash
-sudo dnf install python-pyvmomi
+sudo dnf install python-pyvmomi PyYAML
 ```
 
 ### usage
 
-* Copy config.json.dist to config.json and edit hostname, user, password
+* Copy vcenter_inv.yml.dist to vcenter_inv.yml and edit hostname, user,
+  password. Or you can use one yaml config file with variables for
+  [ansible vsphere_guest module][4] and vcenter_inv.py (just create symlink to
+  group_vars/all, for example).
 * Run ```./vcenter_inv.py --list```:
 
 Example output:
@@ -61,3 +64,4 @@ inventory = path/to/inventory/vcenter_inv.py
 [1]: https://github.com/vmware/pyvmomi-community-samples/blob/master/samples/list_vmwaretools_status.pyA
 [2]: https://github.com/vmware/pyvmomi/tree/master/docs/vim/vm
 [3]: https://github.com/RaymiiOrg/ansible-vmware
+[4]: http://docs.ansible.com/ansible/vsphere_guest_module.html

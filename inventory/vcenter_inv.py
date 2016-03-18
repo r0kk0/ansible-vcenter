@@ -10,6 +10,7 @@ from pyVmomi import vim
 import argparse
 import atexit
 import json
+import yaml
 import os
 import requests
 
@@ -17,6 +18,7 @@ import requests
 # disable  urllib3 warnings
 if hasattr(requests.packages.urllib3, 'disable_warnings'):
     requests.packages.urllib3.disable_warnings()
+
 
 def parse_args():
     '''Parse arguments'''
@@ -26,7 +28,9 @@ def parse_args():
     parser.add_argument('--host',
                         help='Return some guest information')
     args = parser.parse_args()
+
     return args
+
 
 def load_config(path):
     '''Load config file'''
@@ -35,9 +39,14 @@ def load_config(path):
         exit(1)
 
     with open(path, 'r') as f:
-        content = json.load(f)
+        try:
+            content = yaml.load(f)
+        except yaml.YAMLError as error:
+            print error
+            exit(1)
 
-    return content
+    return content['vcenter']
+
 
 def get_vms(content):
     '''Get list of vms objects'''
@@ -45,7 +54,9 @@ def get_vms(content):
         content.rootFolder, [vim.VirtualMachine], True)
     vms_list = obj_view.view
     obj_view.Destroy()
+
     return vms_list
+
 
 def create_groups_list(vm_list):
     '''Create python dict with groups structure based on guestId'''
@@ -68,6 +79,7 @@ def create_groups_list(vm_list):
 
     return inventory
 
+
 def create_inventory_list(vm_list, groups):
     '''Create inventory list for ansible'''
     for vm in vm_list:
@@ -78,6 +90,7 @@ def create_inventory_list(vm_list, groups):
             groups[group]['hosts'].append(ipaddr)
 
     return json.dumps(groups, indent=4)
+
 
 def create_host_list(vm_list, host):
     '''Create host information json object for ansible'''
@@ -94,16 +107,18 @@ def create_host_list(vm_list, host):
 
     return json.dumps(vm_info, indent=4)
 
+
 def main():
     '''Main program'''
     args = parse_args()
 
-    config_path = '%s/config.json' % os.path.dirname(os.path.abspath(__file__))
+    config_path = '%s/%s.yml' % (os.path.dirname(os.path.abspath(__file__)),
+                                 os.path.splitext(os.path.basename(__file__))[0])
     config = load_config(config_path)
 
     # connect to vc
     si = SmartConnect(
-        host=config['server'],
+        host=config['host'],
         user=config['username'],
         pwd=config['password'],
         port=int(config['port']))
