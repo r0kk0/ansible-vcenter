@@ -5,14 +5,16 @@
 Ansible inventory script for VMWare vCenter
 '''
 
-from pyVim.connect import SmartConnect, Disconnect
-from pyVmomi import vim
 import argparse
 import atexit
 import json
-import yaml
 import os
+from getpass import getpass
+
 import requests
+import yaml
+from pyVim.connect import SmartConnectNoSSL, Disconnect
+from pyVmomi import vim
 
 
 # disable  urllib3 warnings
@@ -28,6 +30,9 @@ def parse_args():
     parser.add_argument('--host',
                         help='Return some guest information')
     args = parser.parse_args()
+    if not args.list and not args.host:
+        parser.print_help()
+        parser.exit()
 
     return args
 
@@ -35,14 +40,14 @@ def parse_args():
 def load_config(path):
     '''Load config file'''
     if not os.path.exists(path):
-        print "Configuration file not found: %s" % path
+        print("Configuration file not found: %s" % path)
         exit(1)
 
     with open(path, 'r') as f:
         try:
-            content = yaml.load(f)
+            content = yaml.load(f, Loader=yaml.SafeLoader)
         except yaml.YAMLError as error:
-            print error
+            print(error)
             exit(1)
 
     return content['vcenter']
@@ -67,11 +72,11 @@ def create_groups_list(vm_list):
     inventory[root_group] = {}
 
     for vm in vm_list:
-        #group = vm.guest.guestFamily
+        # group = vm.guest.guestFamily
         group = vm.guest.guestId
-        if group and not inventory.has_key(group):
+        if group and group not in inventory:
             inventory[group] = {}
-            if not inventory[group].has_key('hosts'):
+            if 'hosts' not in inventory[group]:
                 inventory[group]['hosts'] = []
             children_groups.append(group)
 
@@ -83,7 +88,7 @@ def create_groups_list(vm_list):
 def create_inventory_list(vm_list, groups):
     '''Create inventory list for ansible'''
     for vm in vm_list:
-        #group = vm.guest.guestFamily
+        # group = vm.guest.guestFamily
         group = vm.guest.guestId
         ipaddr = vm.guest.ipAddress
         if group and ipaddr:
@@ -112,16 +117,19 @@ def main():
     '''Main program'''
     args = parse_args()
 
-    config_path = '%s/%s.yml' % (os.path.dirname(os.path.abspath(__file__)),
+    default_cfg = '%s/%s.yml' % (os.path.dirname(os.path.abspath(__file__)),
                                  os.path.splitext(os.path.basename(__file__))[0])
-    config = load_config(config_path)
+    cfg_file = os.getenv('VCENTER_INV_CFG', default=default_cfg)
+    config = load_config(cfg_file)
 
+    password = config['password'] or getpass(prompt="enter password: ")
     # connect to vc
-    si = SmartConnect(
+    si = SmartConnectNoSSL(
         host=config['host'],
         user=config['username'],
-        pwd=config['password'],
-        port=int(config['port']))
+        pwd=password,
+        port=int(config['port']),
+    )
     # disconnect vc
     atexit.register(Disconnect, si)
 
@@ -131,11 +139,12 @@ def main():
         vm_list = get_vms(content)
         groups = create_groups_list(vm_list)
         inventory = create_inventory_list(vm_list, groups)
-        print inventory
+        print(inventory)
     elif args.host:
         vm_list = get_vms(content)
         host = create_host_list(vm_list, args.host)
-        print host
+        print(host)
+
 
 if __name__ == "__main__":
     main()

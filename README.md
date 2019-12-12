@@ -21,7 +21,8 @@ sudo dnf install python-pyvmomi PyYAML
 * Copy vcenter_inv.yml.dist to vcenter_inv.yml and edit hostname, user,
   password. Or you can use one yaml config file with variables for
   [ansible vsphere_guest module][4] and vcenter_inv.py (just create symlink to
-  group_vars/all, for example).
+  group_vars/all, for example). Also, you can put configuration file to any place
+  and set **VCENTER_INV_CFG** environment variable to it.
 * Run ```./vcenter_inv.py --list```:
 
 Example output:
@@ -50,7 +51,8 @@ Example output:
 
 * Run ansible ping with '-i' options:
 
-```
+```bash
+# export VCENTER_INV_CFG=~/.ansible/vcenter_inv.py
 ansible -i path/to/vcenter_inv.py -m ping
 ```
 
@@ -61,7 +63,7 @@ or add to ansible.cfg:
 inventory = path/to/inventory/vcenter_inv.py
 ```
 
-[1]: https://github.com/vmware/pyvmomi-community-samples/blob/master/samples/list_vmwaretools_status.pyA
-[2]: https://github.com/vmware/pyvmomi/tree/master/docs/vim/vm
+[1]: https://github.com/vmware/pyvmomi-community-samples/blob/master/samples/list_vmwaretools_status.py
+[2]: https://github.com/vmware/pyvmomi
 [3]: https://github.com/RaymiiOrg/ansible-vmware
 [4]: http://docs.ansible.com/ansible/vsphere_guest_module.html
