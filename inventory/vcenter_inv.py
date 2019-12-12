@@ -60,6 +60,7 @@ def get_vms(content):
     vms_list = obj_view.view
     obj_view.Destroy()
 
+    print(vms_list)
     return vms_list
 
 
@@ -122,7 +123,8 @@ def main():
     cfg_file = os.getenv('VCENTER_INV_CFG', default=default_cfg)
     config = load_config(cfg_file)
 
-    password = config['password'] or getpass(prompt="enter password: ")
+    env_pwd = os.getenv('VCENTER_INV_PWD')
+    password = config['password'] or env_pwd or getpass(prompt="enter password: ")
     # connect to vc
     si = SmartConnectNoSSL(
         host=config['host'],
