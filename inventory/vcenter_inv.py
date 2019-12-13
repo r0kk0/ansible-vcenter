@@ -68,18 +68,19 @@ def get_vms(content):
 
 
 def extract_domain(hostname, dots=1):
-    '''Extracts domain name from `hostname` (str). Keep `dots` (int) dots in the domain.
+    '''Extracts domain name from `hostname` (str). Keep `dots` (int) dots in the domain. Replaces
+    bad ansible group charaters with '_'.
 
     >>> extract_domain('hostname', dots=1)
     >>> extract_domain('example.com', dots=1)
     >>> extract_domain('hostname.example.com', dots=1)
-    'example.com'
+    'example_com'
     >>> extract_domain('test.hostname.example.com', dots=1)
-    'example.com'
+    'example_com'
     >>> extract_domain('example.com', dots=2)
     >>> extract_domain('hostname.example.com', dots=2)
     >>> extract_domain('test.hostname.example.com', dots=2)
-    'hostname.example.com'
+    'hostname_example_com'
     '''
 
     if '.' not in hostname:
@@ -88,7 +89,7 @@ def extract_domain(hostname, dots=1):
     domain = hostname.split('.', 1)[1]
     c = Counter(domain)
     if c['.'] == dots:
-        return domain
+        return domain.replace('.', '_').replace('-', '_')
 
     return extract_domain(domain)
 
@@ -96,7 +97,8 @@ def extract_domain(hostname, dots=1):
 def create_inventory_list(vm_list, group_by='guestId', use_ip=False):
     '''
     Arguments:
-        group_by (str): guestId, domain
+        group_by (str): guestId, domain - group hosts by guestId or domain
+        use_ip (bool): use ip addresses instead of hostnames
     '''
 
     inventory = {}
