@@ -4,3 +4,5 @@ vcenter:
   username: "user@domain.local"
   password: "password"
   port: 443
+  group_by: "guestId"  # or domain
+  use_ip: yes  # use ip address instead of hostnames?

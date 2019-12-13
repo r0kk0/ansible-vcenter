@@ -9,12 +9,16 @@ import argparse
 import atexit
 import json
 import os
+from collections import Counter
 from getpass import getpass
 
 import requests
 import yaml
 from pyVim.connect import SmartConnectNoSSL, Disconnect
 from pyVmomi import vim
+
+
+_DEFAULT_GROUP = 'ungrouped'
 
 
 # disable  urllib3 warnings
@@ -60,42 +64,67 @@ def get_vms(content):
     vms_list = obj_view.view
     obj_view.Destroy()
 
-    print(vms_list)
     return vms_list
 
 
-def create_groups_list(vm_list):
-    '''Create python dict with groups structure based on guestId'''
+def extract_domain(hostname, dots=1):
+    '''Extracts domain name from `hostname` (str). Keep `dots` (int) dots in the domain.
+
+    >>> extract_domain('hostname', dots=1)
+    >>> extract_domain('example.com', dots=1)
+    >>> extract_domain('hostname.example.com', dots=1)
+    'example.com'
+    >>> extract_domain('test.hostname.example.com', dots=1)
+    'example.com'
+    >>> extract_domain('example.com', dots=2)
+    >>> extract_domain('hostname.example.com', dots=2)
+    >>> extract_domain('test.hostname.example.com', dots=2)
+    'hostname.example.com'
+    '''
+
+    if '.' not in hostname:
+        return
+
+    domain = hostname.split('.', 1)[1]
+    c = Counter(domain)
+    if c['.'] == dots:
+        return domain
+
+    return extract_domain(domain)
+
+
+def create_inventory_list(vm_list, group_by='guestId', use_ip=False):
+    '''
+    Arguments:
+        group_by (str): guestId, domain
+    '''
+
     inventory = {}
-    root_group = 'vcenter'
-    children_groups = []
-
-    inventory[root_group] = {}
+    inventory['vcenter'] = {}
+    inventory['vcenter']['children'] = []
 
     for vm in vm_list:
-        # group = vm.guest.guestFamily
-        group = vm.guest.guestId
-        if group and group not in inventory:
-            inventory[group] = {}
-            if 'hosts' not in inventory[group]:
-                inventory[group]['hosts'] = []
-            children_groups.append(group)
+        if vm.guest.guestState == 'notRunning':
+            continue
 
-    inventory[root_group]['children'] = children_groups
+        if vm.guest.toolsStatus == 'toolsNotInstalled':
+            continue
 
-    return inventory
+        hostname = vm.guest.hostName
 
+        group = vm.guest.guestId or vm.guest.guestFamily or _DEFAULT_GROUP
+        if group_by == 'domain':
+            group = extract_domain(hostname) or _DEFAULT_GROUP
+        if group not in inventory['vcenter']['children']:
+            inventory['vcenter']['children'].append(group)
 
-def create_inventory_list(vm_list, groups):
-    '''Create inventory list for ansible'''
-    for vm in vm_list:
-        # group = vm.guest.guestFamily
-        group = vm.guest.guestId
-        ipaddr = vm.guest.ipAddress
-        if group and ipaddr:
-            groups[group]['hosts'].append(ipaddr)
+        if group not in inventory:
+            inventory[group] = []
 
-    return json.dumps(groups, indent=4)
+        value = vm.guest.ipAddress if use_ip else hostname
+        inventory[group].append(value)
+
+    return json.dumps(inventory, indent=4)
 
 
 def create_host_list(vm_list, host):
@@ -137,15 +166,13 @@ def main():
 
     content = si.RetrieveContent()
 
+    vm_list = get_vms(content)
     if args.list:
-        vm_list = get_vms(content)
-        groups = create_groups_list(vm_list)
-        inventory = create_inventory_list(vm_list, groups)
-        print(inventory)
+        result = create_inventory_list(
+            vm_list, group_by=config['group_by'], use_ip=config['use_ip'])
     elif args.host:
-        vm_list = get_vms(content)
-        host = create_host_list(vm_list, args.host)
-        print(host)
+        result = create_host_list(vm_list, host=args.host)
+    print(result)
 
 
 if __name__ == "__main__":
