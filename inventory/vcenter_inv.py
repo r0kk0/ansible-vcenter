@@ -122,12 +122,13 @@ def create_inventory_list(vm_list, group_by='guestId', use_ip=False):
     return json.dumps(inventory, indent=2)
 
 
-def create_host_list(vm_list, host):
+def create_host_info(vm_list, host):
     '''Create host information json object for ansible'''
     vm_info = {}
     for vm in vm_list:
-        ipaddr = vm.guest.ipAddress
-        if host == ipaddr:
+        ipaddress = vm.guest.ipAddress
+        hostname = vm.guest.hostName
+        if host in [ipaddress, hostname]:
             vm_info['vm_name'] = vm.name
             vm_info['vm_guest_fullname'] = vm.guest.guestFullName
             vm_info['vm_guest_toolsStatus'] = vm.guest.toolsStatus
@@ -166,7 +167,7 @@ def main():
         result = create_inventory_list(
             vm_list, group_by=config['group_by'], use_ip=config['use_ip'])
     elif args.host:
-        result = create_host_list(vm_list, host=args.host)
+        result = create_host_info(vm_list, host=args.host)
     print(result)
 
 
