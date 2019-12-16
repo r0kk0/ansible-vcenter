@@ -2,7 +2,8 @@
 
 ## inventory
 
-Dynamic inventory scripts for ansible and vcenter
+Dynamic inventory scripts for ansible and vcenter. This script provides example how to use pyvmomi
+api. Nowadays Ansible provides production-ready inventory plugin [vmware_inventory.py][5]
 
 Based on:
 
@@ -67,3 +68,4 @@ inventory = path/to/inventory/vcenter_inv.py
 [2]: https://github.com/vmware/pyvmomi
 [3]: https://github.com/RaymiiOrg/ansible-vmware
 [4]: http://docs.ansible.com/ansible/vsphere_guest_module.html
+[5]: https://github.com/ansible/ansible/blob/devel/contrib/inventory/vmware_inventory.py
