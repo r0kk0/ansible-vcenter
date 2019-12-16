@@ -121,12 +121,13 @@ def create_inventory_list(vm_list, group_by='guestId', use_ip=False):
             inventory['vcenter']['children'].append(group)
 
         if group not in inventory:
-            inventory[group] = []
+            inventory[group] = {}
+            inventory[group]['hosts'] = []
 
         value = vm.guest.ipAddress if use_ip else hostname
-        inventory[group].append(value)
+        inventory[group]['hosts'].append(value)
 
-    return json.dumps(inventory, indent=4)
+    return json.dumps(inventory, indent=2)
 
 
 def create_host_list(vm_list, host):
