@@ -1,0 +1,3 @@
+---
+
+ansible_python_intepreter: /usr/local/bin/python
